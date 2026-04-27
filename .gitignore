@@ -1,0 +1,3 @@
+# Audio files — too large for git, upload separately via LittleFS image tool
+listener/data/track.aac
+listener/data/static.aac
