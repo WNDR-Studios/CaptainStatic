@@ -54,7 +54,8 @@ const int      ALL_MSG_SN_IDX            = 2;    // Byte index of the sequence n
 // The listener reads these to compute round-trip time.
 const int      RESP_MSG_POLL_RX_TS_IDX   = 10;   // Offset of the "when we received the poll" timestamp
 const int      RESP_MSG_RESP_TX_TS_IDX   = 14;   // Offset of the "when we are sending this response" timestamp
-const int      RESP_MSG_TS_LEN           = 4;    // Each timestamp field is 4 bytes (lower 32 bits of the 40-bit DW3000 timestamp)
+// RESP_MSG_TS_LEN = 4 is defined in dw3000_shared_defines.h — not redeclared here to avoid collision.
+// Each timestamp field is 4 bytes (lower 32 bits of the 40-bit DW3000 timestamp).
 
 // How long after receiving the poll to schedule the response transmission.
 // This must be long enough for the ESP32 to run the response-building code

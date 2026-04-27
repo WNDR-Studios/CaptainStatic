@@ -69,7 +69,8 @@ const int     ALL_MSG_SN_IDX            = 2;    // Byte index of the sequence nu
 // These are read by the listener to compute round-trip time.
 const int     RESP_MSG_POLL_RX_TS_IDX   = 10;   // Offset of the "when anchor received the poll" timestamp
 const int     RESP_MSG_RESP_TX_TS_IDX   = 14;   // Offset of the "when anchor sent this response" timestamp
-const int     RESP_MSG_TS_LEN           = 4;    // Each timestamp field is 4 bytes (lower 32 bits of the 40-bit DW3000 timestamp)
+// RESP_MSG_TS_LEN = 4 is defined in dw3000_shared_defines.h — not redeclared here to avoid collision.
+// Each timestamp field is 4 bytes (lower 32 bits of the 40-bit DW3000 timestamp).
 
 // How long after sending the poll the listener opens its receive window.
 // Must be long enough for the anchor to process the poll and send a response,
@@ -110,7 +111,7 @@ const int   MIXER_BUF_SIZE = 1024;
 // 1.0 = unity (full volume). 0.1 = 10% — reduce this if audio is clipping/distorting.
 // Note: the MAX98357A hardware gain is set by its GAIN pin (floating = 9dB, lowest setting).
 // This software gain stacks on top of that.
-const float MASTER_GAIN    = 0.1f;
+const float MASTER_GAIN    = 0.2f;
 
 // -----------------------------------------------------------------------------
 // Crossfade distance thresholds
@@ -118,8 +119,8 @@ const float MASTER_GAIN    = 0.1f;
 // At NEAR_DIST_M or closer  → track.aac is at full volume, static.aac is silent.
 // At FAR_DIST_M  or farther → static.aac is at full volume, track.aac is silent.
 // Between the two values, both tracks crossfade linearly.
-const float NEAR_DIST_M = 0.5f;  // meters
-const float FAR_DIST_M  = 3.0f;  // meters
+const float NEAR_DIST_M = 0.1f;  // meters
+const float FAR_DIST_M  = 1.5f;  // meters
 
 // -----------------------------------------------------------------------------
 // DW3000 radio configuration
