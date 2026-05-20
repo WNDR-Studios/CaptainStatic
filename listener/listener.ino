@@ -90,7 +90,7 @@ const int     RESP_RX_TIMEOUT_UUS       = 1200;
 // using an IIR (Infinite Impulse Response) low-pass filter:
 //   filtered = alpha * new + (1 - alpha) * filtered
 // Lower alpha = smoother but slower to respond. 0.2 means 20% new, 80% history.
-const float DISTANCE_FILTER_ALPHA   = 0.2f;
+const float DISTANCE_FILTER_ALPHA   = 0.8f;
 
 // If this many consecutive ranging cycles fail (timeout, bad frame, out-of-range),
 // we report "NO SIGNAL" on the serial monitor. At 100ms per cycle this is ~1 second.
@@ -111,7 +111,7 @@ const int   MIXER_BUF_SIZE = 1024;
 // 1.0 = unity (full volume). 0.1 = 10% — reduce this if audio is clipping/distorting.
 // Note: the MAX98357A hardware gain is set by its GAIN pin (floating = 9dB, lowest setting).
 // This software gain stacks on top of that.
-const float MASTER_GAIN    = 0.2f;
+const float MASTER_GAIN    = 0.3f;
 
 // -----------------------------------------------------------------------------
 // Crossfade distance thresholds
@@ -120,7 +120,7 @@ const float MASTER_GAIN    = 0.2f;
 // At FAR_DIST_M  or farther → static.aac is at full volume, track.aac is silent.
 // Between the two values, both tracks crossfade linearly.
 const float NEAR_DIST_M = 0.1f;  // meters
-const float FAR_DIST_M  = 1.5f;  // meters
+const float FAR_DIST_M  = 2.0f;  // meters
 
 // -----------------------------------------------------------------------------
 // DW3000 radio configuration
