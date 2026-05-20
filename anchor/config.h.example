@@ -1,0 +1,16 @@
+// config.h — Anchor board configuration
+// -----------------------------------------------------------------------
+// Copy this file to config.h and set PAIR_ID for this specific board.
+// config.h is gitignored so each physical board can carry its own identity.
+//
+// The paired listener board must have the same PAIR_ID.
+// Valid values: 1–8 (one per installation pair).
+// -----------------------------------------------------------------------
+
+#pragma once
+
+// Unique identity for this anchor/listener pair.
+// Used as the low byte of the 802.15.4 PAN ID in every frame, so the DW3000's
+// built-in header comparison automatically rejects frames from other pairs.
+// The paired listener must have the same value.
+#define PAIR_ID 1

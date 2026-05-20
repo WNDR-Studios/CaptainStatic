@@ -1,0 +1,53 @@
+// config.h — Listener board configuration
+// -----------------------------------------------------------------------
+// Copy this file to config.h and set values for this specific board.
+// config.h is gitignored so each physical board can carry its own identity
+// and tuning without polluting the shared codebase.
+//
+// The paired anchor board must have the same PAIR_ID.
+// Valid PAIR_ID values: 1–8 (one per installation pair).
+// -----------------------------------------------------------------------
+
+#pragma once
+
+// Unique identity for this anchor/listener pair.
+// Used as the low byte of the 802.15.4 PAN ID in every frame, so the DW3000's
+// built-in header comparison automatically rejects frames from other pairs.
+// The paired anchor must have the same value.
+#define PAIR_ID 1
+
+// -----------------------------------------------------------------------
+// Distance smoothing
+// -----------------------------------------------------------------------
+// IIR low-pass filter coefficient applied to each new distance reading:
+//   filtered = ALPHA * new + (1 - ALPHA) * filtered
+// Range 0.0–1.0. Lower = smoother but slower to respond to movement.
+// 0.1 is very smooth, 0.9 is nearly unfiltered. Start around 0.2–0.4.
+#define DISTANCE_FILTER_ALPHA 0.5f
+
+// -----------------------------------------------------------------------
+// Crossfade distance thresholds
+// -----------------------------------------------------------------------
+// At or below NEAR_DIST_M: primary track is at full volume, static is silent.
+// At or above FAR_DIST_M:  static is at full volume, primary track is silent.
+// Between the two: both tracks crossfade linearly.
+#define NEAR_DIST_M 0.3f   // meters — "close enough to hear clearly"
+#define FAR_DIST_M  2.0f   // meters — "too far, just static"
+
+// -----------------------------------------------------------------------
+// Volume
+// -----------------------------------------------------------------------
+// Master output scalar (0.0–1.0). The two track gains always sum to this value
+// so overall loudness stays constant regardless of crossfade position.
+// Reduce if audio clips or distorts; increase if output is too quiet.
+// Note: stacks on top of the MAX98357A hardware gain (floating GAIN pin = 9 dB).
+#define MASTER_GAIN 0.3f
+
+// -----------------------------------------------------------------------
+// TX jitter
+// -----------------------------------------------------------------------
+// Maximum random extra delay (ms) appended to each ranging interval.
+// Spreads out polling transmissions across the 8 pairs so they don't
+// collide repeatedly on the shared UWB channel. 30ms is plenty of spread
+// while keeping the effective ranging rate well above audio update needs.
+#define TX_JITTER_MS 30

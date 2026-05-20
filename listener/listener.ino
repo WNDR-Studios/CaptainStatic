@@ -33,6 +33,7 @@
 //   Storage: ESP32 flash via LittleFS (4MB partition with spiffs layout)
 // =============================================================================
 
+#include "config.h"                   // Per-board identity and tuning — copy config.h.example
 #include "src/dw3000/dw3000.h"       // DW3000 UWB driver
 #include <LittleFS.h>                 // Flash filesystem for audio files
 #include <AudioFileSourceLittleFS.h>  // ESP8266Audio: file source backed by LittleFS
@@ -86,12 +87,7 @@ const int     RESP_RX_TIMEOUT_UUS       = 1200;
 // -----------------------------------------------------------------------------
 // Distance filtering
 // -----------------------------------------------------------------------------
-// Each new raw distance reading is blended with the previous filtered value
-// using an IIR (Infinite Impulse Response) low-pass filter:
-//   filtered = alpha * new + (1 - alpha) * filtered
-// Lower alpha = smoother but slower to respond. 0.2 means 20% new, 80% history.
-const float DISTANCE_FILTER_ALPHA   = 0.8f;
-
+// DISTANCE_FILTER_ALPHA is defined in config.h — see config.h.example for tuning guidance.
 // If this many consecutive ranging cycles fail (timeout, bad frame, out-of-range),
 // we report "NO SIGNAL" on the serial monitor. At 100ms per cycle this is ~1 second.
 const int   MAX_CONSECUTIVE_FAILURES = 10;
@@ -107,20 +103,8 @@ const int I2S_DIN_PIN   = 22;  // Serial data to amp
 // Must be at least 1024 samples to hold one full AAC-LC decoded frame.
 const int   MIXER_BUF_SIZE = 1024;
 
-// Overall output volume scalar applied at the mixer stub level.
-// 1.0 = unity (full volume). 0.1 = 10% — reduce this if audio is clipping/distorting.
-// Note: the MAX98357A hardware gain is set by its GAIN pin (floating = 9dB, lowest setting).
-// This software gain stacks on top of that.
-const float MASTER_GAIN    = 0.3f;
-
-// -----------------------------------------------------------------------------
-// Crossfade distance thresholds
-// -----------------------------------------------------------------------------
-// At NEAR_DIST_M or closer  → track.aac is at full volume, static.aac is silent.
-// At FAR_DIST_M  or farther → static.aac is at full volume, track.aac is silent.
-// Between the two values, both tracks crossfade linearly.
-const float NEAR_DIST_M = 0.1f;  // meters
-const float FAR_DIST_M  = 2.0f;  // meters
+// MASTER_GAIN, NEAR_DIST_M, FAR_DIST_M, DISTANCE_FILTER_ALPHA, and TX_JITTER_MS
+// are defined in config.h (copy from config.h.example and set per board).
 
 // -----------------------------------------------------------------------------
 // DW3000 radio configuration
@@ -147,14 +131,15 @@ static dwt_config_t config = {
 // Message frame templates
 // -----------------------------------------------------------------------------
 // The listener sends tx_poll_msg, and expects to receive something matching rx_resp_msg.
-// Byte layout: [0x41, 0x88] = frame control (data frame, short addresses)
-//              [SN]         = sequence number (incremented each cycle, index 2)
-//              [0xCA, 0xDE] = PAN ID
-//              ['W','A','V','E'] or ['V','E','W','A'] = application identifier
+// Byte layout: [0x41, 0x88]    = frame control (data frame, short addresses)
+//              [SN]            = sequence number (incremented each cycle, index 2)
+//              [0xCA, PAIR_ID] = PAN ID — unique per pair, filters cross-pair frames via memcmp
+//              ['C','A','P','T'] or ['T','P','A','C'] = application identifier (CAPT poll / TPAC response)
 //              [0xE0] or [0xE1] = message type byte (poll vs response)
-//              Trailing zeros = padding / timestamp fields (filled in at runtime)
-static uint8_t tx_poll_msg[] = {0x41, 0x88, 0, 0xCA, 0xDE, 'W', 'A', 'V', 'E', 0xE0, 0, 0};
-static uint8_t rx_resp_msg[] = {0x41, 0x88, 0, 0xCA, 0xDE, 'V', 'E', 'W', 'A', 0xE1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//              Trailing zeros  = timestamp fields (filled in by anchor) / FCS placeholder
+//              Last 2 bytes    = 802.15.4 FCS placeholder (DW3000 fills these with CRC on TX)
+static uint8_t tx_poll_msg[] = {0x41, 0x88, 0, 0xCA, PAIR_ID, 'C', 'A', 'P', 'T', 0xE0, 0, 0};
+static uint8_t rx_resp_msg[] = {0x41, 0x88, 0, 0xCA, PAIR_ID, 'T', 'P', 'A', 'C', 0xE1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static uint8_t frame_seq_nb = 0;    // Sequence number, wraps 0–255 automatically (uint8_t overflow)
 static uint8_t rx_buffer[20];       // Scratch buffer for received frames (response is 20 bytes)
@@ -323,6 +308,10 @@ void setup()
   // Enable the LNA (low-noise amplifier) and PA (power amplifier) for maximum RF range
   dwt_setlnapamode(DWT_LNA_ENABLE | DWT_PA_ENABLE);
 
+  // Seed the RNG for TX jitter. micros() varies slightly board to board at boot,
+  // which is enough entropy to de-synchronize polling across pairs.
+  randomSeed(micros());
+
   Serial.println("Listener ready.");
 
   // Mount the LittleFS flash filesystem where the audio files are stored.
@@ -452,12 +441,14 @@ void loop()
   {
     snprintf(dist_str, sizeof(dist_str), "DIST: ACQUIRING...");
   }
-  test_run_info((unsigned char *)dist_str);
+  Serial.println(dist_str);
 
-  // --- Pace the cycle to RNG_INTERVAL_MS ---
-  // Sleep only for however long is left in the 100ms window after the exchange.
-  // This keeps the ranging rate consistent without a fixed blocking delay.
+  // --- Pace the cycle to RNG_INTERVAL_MS, plus a random jitter ---
+  // The fixed sleep keeps the base rate at 100ms; the jitter (0–TX_JITTER_MS)
+  // prevents 8 listeners from staying phase-locked and colliding repeatedly
+  // on the shared UWB channel.
   unsigned long elapsed = millis() - loopStart;
   if (elapsed < RNG_INTERVAL_MS)
     Sleep(RNG_INTERVAL_MS - elapsed);
+  Sleep(random(0, TX_JITTER_MS));
 }

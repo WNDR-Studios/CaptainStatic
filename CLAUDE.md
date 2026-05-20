@@ -44,12 +44,14 @@ SPI speed: 16 MHz (set via _fastSPI SPISettings)
 ### Message Frames
 ```c
 // Poll (listener → anchor):
-{0x41, 0x88, SN, 0xCA, 0xDE, 'W','A','V','E', 0xE0, 0, 0}
+{0x41, 0x88, SN, 0xCA, PAIR_ID, 'C','A','P','T', 0xE0, 0, 0}
 
 // Response (anchor → listener):
-{0x41, 0x88, SN, 0xCA, 0xDE, 'V','E','W','A', 0xE1, 0,0, [poll_rx_ts 4B], [resp_tx_ts 4B], 0,0}
+{0x41, 0x88, SN, 0xCA, PAIR_ID, 'T','P','A','C', 0xE1, 0,0, [poll_rx_ts 4B], [resp_tx_ts 4B], 0,0}
 ```
 `ALL_MSG_COMMON_LEN = 10` — first 10 bytes compared for message validation (SN byte at index 2 is zeroed before compare).
+Byte 4 is `PAIR_ID` (802.15.4 PAN ID low byte) — unique per pair, so cross-pair frames are automatically rejected by the header comparison.
+Last 2 bytes of each frame are the 802.15.4 FCS placeholder; the DW3000 fills these with the computed CRC on TX and includes them in RXFLEN on RX — do not use for application data.
 
 ### DW3000 RF Config
 ```c
@@ -149,6 +151,10 @@ dwt_configuretxrf(&txconfig_options)  // txconfig_options defined in dw3000_conf
 dwt_setrxantennadelay(RX_ANT_DLY)
 dwt_settxantennadelay(TX_ANT_DLY)
 ```
+
+## Git & Workflow Notes
+
+- Do not include `Co-Authored-By` trailer lines in commit messages for this project.
 
 ## Notes & Gotchas
 

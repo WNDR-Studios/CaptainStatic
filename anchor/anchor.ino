@@ -24,6 +24,7 @@
 //   Note  : No audio hardware on the anchor — it is power-only.
 // =============================================================================
 
+#include "config.h"              // Per-board identity (PAIR_ID) — copy config.h.example
 #include "src/dw3000/dw3000.h"  // DW3000 UWB driver
 #include "SPI.h"
 
@@ -99,14 +100,15 @@ static dwt_config_t config = {
 // Message frame templates
 // -----------------------------------------------------------------------------
 // The anchor listens for rx_poll_msg, then replies with tx_resp_msg.
-// Byte layout: [0x41, 0x88] = frame control (data frame, short addresses)
-//              [SN]         = sequence number (index 2, zeroed before comparison)
-//              [0xCA, 0xDE] = PAN ID
-//              ['W','A','V','E'] or ['V','E','W','A'] = application identifier (reversed in response)
+// Byte layout: [0x41, 0x88]   = frame control (data frame, short addresses)
+//              [SN]           = sequence number (index 2, zeroed before comparison)
+//              [0xCA, PAIR_ID] = PAN ID — unique per pair, filters cross-pair frames via memcmp
+//              ['C','A','P','T'] or ['T','P','A','C'] = application identifier (CAPT poll / TPAC response)
 //              [0xE0] or [0xE1] = message type byte (poll vs response)
 //              Trailing bytes  = timestamp fields, filled in at runtime
-static uint8_t rx_poll_msg[] = {0x41, 0x88, 0, 0xCA, 0xDE, 'W', 'A', 'V', 'E', 0xE0, 0, 0};
-static uint8_t tx_resp_msg[] = {0x41, 0x88, 0, 0xCA, 0xDE, 'V', 'E', 'W', 'A', 0xE1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//              Last 2 bytes    = 802.15.4 FCS placeholder (DW3000 fills these with CRC on TX)
+static uint8_t rx_poll_msg[] = {0x41, 0x88, 0, 0xCA, PAIR_ID, 'C', 'A', 'P', 'T', 0xE0, 0, 0};
+static uint8_t tx_resp_msg[] = {0x41, 0x88, 0, 0xCA, PAIR_ID, 'T', 'P', 'A', 'C', 0xE1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static uint8_t frame_seq_nb = 0;    // Sequence number, echoed back in the response frame
 static uint8_t rx_buffer[20];       // Scratch buffer for received frames (poll is 12 bytes, buffer is generous)
@@ -246,8 +248,7 @@ void loop()
         resp_tx_ts = (((uint64_t)(resp_tx_time & 0xFFFFFFFEUL)) << 8) + TX_ANT_DLY;
 
         // --- Embed both timestamps into the response frame ---
-        // The listener will extract these to compute time-of-flight.
-        /* Write all timestamps in the final message. See NOTE 8 below. */
+        // The listener extracts these to compute time-of-flight.
         resp_msg_set_ts(&tx_resp_msg[RESP_MSG_POLL_RX_TS_IDX], poll_rx_ts);
         resp_msg_set_ts(&tx_resp_msg[RESP_MSG_RESP_TX_TS_IDX], resp_tx_ts);
 
