@@ -5,3 +5,6 @@ listener/config.h
 # Audio files — too large for git, upload separately via LittleFS image tool
 listener/data/track.aac
 listener/data/static.aac
+
+# LittleFS packaging tool binary — platform-specific, not part of source
+listener/mklittlefs.bin
