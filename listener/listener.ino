@@ -406,11 +406,16 @@ void loop()
         // due to noise — that's acceptable. Reject anything wildly out of range.
         if (distance > -0.5 && distance < 100.0)
         {
+          // Clamp to 0 before filtering — negative values are noise, not real distance,
+          // and feeding them into the EWMA would pull filteredDistance below 0, which
+          // the rest of the code uses as the "not yet acquired" sentinel.
+          float d = (float)distance < 0.0f ? 0.0f : (float)distance;
+
           // First valid reading: seed the filter directly (no history to blend with yet)
-          if (filteredDistance < 0.0)
-            filteredDistance = distance;
+          if (filteredDistance < 0.0f)
+            filteredDistance = d;
           else
-            filteredDistance = DISTANCE_FILTER_ALPHA * distance + (1.0 - DISTANCE_FILTER_ALPHA) * filteredDistance;
+            filteredDistance = DISTANCE_FILTER_ALPHA * d + (1.0f - DISTANCE_FILTER_ALPHA) * filteredDistance;
 
           gotValidReading = true;
           consecutiveFailures = 0;
