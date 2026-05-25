@@ -31,8 +31,8 @@
 // At or below NEAR_DIST_M: primary track is at full volume, static is silent.
 // At or above FAR_DIST_M:  static is at full volume, primary track is silent.
 // Between the two: both tracks crossfade linearly.
-#define NEAR_DIST_M 0.3f   // meters — "close enough to hear clearly"
-#define FAR_DIST_M  2.0f   // meters — "too far, just static"
+#define NEAR_DIST_M 0.2f   // meters — "close enough to hear clearly"
+#define FAR_DIST_M  0.9f   // meters — "too far, just static"
 
 // -----------------------------------------------------------------------
 // Volume
@@ -66,6 +66,6 @@
 //
 // SIGNAL_FADE_RATE_M_S: how fast (meters/second) filteredDistance drifts
 //   toward FAR_DIST_M once the hold period expires. Lower = slower fade.
-//   Example: 0.3 m/s fades from 0.3m (NEAR) to 2.0m (FAR) in ~5.7 seconds.
+//   Example: 0.1 m/s fades from 0.2m (NEAR) to 0.9m (FAR) in ~7 seconds.
 #define SIGNAL_HOLD_MS       3000
-#define SIGNAL_FADE_RATE_M_S 0.3f
+#define SIGNAL_FADE_RATE_M_S 0.1f
