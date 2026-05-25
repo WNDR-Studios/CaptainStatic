@@ -151,7 +151,9 @@ static double distance;             // Computed distance in meters (raw, before 
 // volatile tells the compiler not to cache this in a register — always re-read from RAM.
 // -1.0 means "not yet acquired" and suppresses audio crossfade until first valid reading.
 static volatile float filteredDistance = -1.0f;
-static int consecutiveFailures = 0;  // Counter of back-to-back failed ranging cycles
+static int consecutiveFailures = 0;        // Counter of back-to-back failed ranging cycles
+static unsigned long lastValidReadingMs = 0;   // millis() timestamp of the last successful ranging cycle
+static float distanceAtSignalLoss = -1.0f;     // filteredDistance captured when the fade begins (reset on recovery)
 
 // TX power / pulse config — defined in dw3000_config_options.cpp, shared by both sketches.
 extern dwt_txconfig_t txconfig_options;
@@ -412,6 +414,8 @@ void loop()
 
           gotValidReading = true;
           consecutiveFailures = 0;
+          lastValidReadingMs = millis();
+          distanceAtSignalLoss = -1.0f;
         }
       }
     }
@@ -422,20 +426,43 @@ void loop()
     dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
   }
 
-  if (!gotValidReading)
+  if (!gotValidReading) {
     consecutiveFailures++;
+
+    // Once we've confirmed signal loss, implement hold-then-fade:
+    //   1. For SIGNAL_HOLD_MS after the last valid reading, keep filteredDistance unchanged.
+    //   2. After that, drift filteredDistance toward FAR_DIST_M at SIGNAL_FADE_RATE_M_S m/s.
+    // This prevents harsh audio jumps to full static on brief dropouts, while still
+    // returning to static gracefully if the signal is truly gone.
+    if (consecutiveFailures > MAX_CONSECUTIVE_FAILURES && filteredDistance >= 0.0f) {
+      unsigned long elapsed = millis() - lastValidReadingMs;
+      if (elapsed > SIGNAL_HOLD_MS) {
+        // Capture the distance at the moment the hold period expires (first time only)
+        if (distanceAtSignalLoss < 0.0f)
+          distanceAtSignalLoss = filteredDistance;
+        float fadeSeconds = (float)(elapsed - SIGNAL_HOLD_MS) / 1000.0f;
+        float fadedDist = distanceAtSignalLoss + fadeSeconds * SIGNAL_FADE_RATE_M_S;
+        if (fadedDist > FAR_DIST_M) fadedDist = FAR_DIST_M;
+        filteredDistance = fadedDist;
+      }
+    }
+  }
 
   // --- Serial output every cycle for monitoring ---
   char dist_str[48];
   if (filteredDistance >= 0.0)
   {
-    if (consecutiveFailures > MAX_CONSECUTIVE_FAILURES)
-      snprintf(dist_str, sizeof(dist_str), "DIST: NO SIGNAL");
-    else if (consecutiveFailures > 0)
-      // Show last known distance with a stale counter so it's clear the reading is old
-      snprintf(dist_str, sizeof(dist_str), "DIST: %.2f m (stale:%d)", filteredDistance, consecutiveFailures);
-    else
+    if (consecutiveFailures == 0)
       snprintf(dist_str, sizeof(dist_str), "DIST: %.2f m", filteredDistance);
+    else if (consecutiveFailures <= MAX_CONSECUTIVE_FAILURES)
+      snprintf(dist_str, sizeof(dist_str), "DIST: %.2f m (stale:%d)", filteredDistance, consecutiveFailures);
+    else {
+      unsigned long elapsed = millis() - lastValidReadingMs;
+      if (elapsed <= SIGNAL_HOLD_MS)
+        snprintf(dist_str, sizeof(dist_str), "DIST: %.2f m (hold)", filteredDistance);
+      else
+        snprintf(dist_str, sizeof(dist_str), "DIST: %.2f m (fading)", filteredDistance);
+    }
   }
   else
   {

@@ -51,3 +51,21 @@
 // collide repeatedly on the shared UWB channel. 30ms is plenty of spread
 // while keeping the effective ranging rate well above audio update needs.
 #define TX_JITTER_MS 30
+
+// -----------------------------------------------------------------------
+// Signal-loss hold & fade
+// -----------------------------------------------------------------------
+// When ranging fails for more than MAX_CONSECUTIVE_FAILURES cycles, the
+// listener enters a hold-then-fade sequence instead of snapping to static:
+//
+//   [valid signal] → [stale:N] → [hold] → [fading] → [full static]
+//
+// SIGNAL_HOLD_MS: how long (ms) to hold the last known distance before
+//   fading begins. Measured from the last successful ranging cycle.
+//   Increase if brief obstructions cause unwanted fades.
+//
+// SIGNAL_FADE_RATE_M_S: how fast (meters/second) filteredDistance drifts
+//   toward FAR_DIST_M once the hold period expires. Lower = slower fade.
+//   Example: 0.3 m/s fades from 0.3m (NEAR) to 2.0m (FAR) in ~5.7 seconds.
+#define SIGNAL_HOLD_MS       3000
+#define SIGNAL_FADE_RATE_M_S 0.3f
