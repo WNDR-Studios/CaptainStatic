@@ -1,0 +1,29 @@
+<?xml version="1.0" standalone="no" ?>
+<!DOCTYPE project PUBLIC "-//audacityffmpegpreset-1.0.0//DTD//EN" "http://audacity.sourceforge.net/xml/audacityffmpegpreset-1.0.0.dtd" >
+<ffmpeg_presets version="1.0">
+	<preset name="44100_64k_adts_aac">
+		<setctrlstate id="FEFormatID" state="adts"/>
+		<setctrlstate id="FECodecID" state="aac"/>
+		<setctrlstate id="FEBitrateID" state="64000"/>
+		<setctrlstate id="FEQualityID" state="0"/>
+		<setctrlstate id="FESampleRateID" state="44100"/>
+		<setctrlstate id="FELanguageID" state=""/>
+		<setctrlstate id="FETagID" state=""/>
+		<setctrlstate id="FECutoffID" state="0"/>
+		<setctrlstate id="FEFrameSizeID" state="0"/>
+		<setctrlstate id="FEBufSizeID" state=""/>
+		<setctrlstate id="FEProfileID" state="0"/>
+		<setctrlstate id="FECompLevelID" state="0"/>
+		<setctrlstate id="FEUseLPCID" state="1"/>
+		<setctrlstate id="FELPCCoeffsID" state="0"/>
+		<setctrlstate id="FEMinPredID" state="-1"/>
+		<setctrlstate id="FEMaxPredID" state="-1"/>
+		<setctrlstate id="FEPredOrderID" state="4"/>
+		<setctrlstate id="FEMinPartOrderID" state="-1"/>
+		<setctrlstate id="FEMaxPartOrderID" state="-1"/>
+		<setctrlstate id="FEMuxRateID" state="0"/>
+		<setctrlstate id="FEPacketSizeID" state="0"/>
+		<setctrlstate id="FEBitReservoirID" state="1"/>
+		<setctrlstate id="FEVariableBlockLenID" state="1"/>
+	</preset>
+</ffmpeg_presets>
